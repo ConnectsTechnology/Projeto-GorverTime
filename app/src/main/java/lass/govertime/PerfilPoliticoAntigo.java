@@ -1,13 +1,12 @@
-package lass.govertime.Presidentes;
+package lass.govertime;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.TextView;
-import com.google.firebase.FirebaseApp;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -16,9 +15,6 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.ms.square.android.expandabletextview.ExpandableTextView;
 import com.squareup.picasso.Picasso;
-
-import lass.govertime.Login;
-import lass.govertime.R;
 
 public class PerfilPoliticoAntigo extends AppCompatActivity {
 
@@ -33,10 +29,9 @@ public class PerfilPoliticoAntigo extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_perfil_politico_antigo);
+        DatabaseUtil.getDatabase();
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setHomeButtonEnabled(true);
-        DatabaseUtil.getDatabase();
-        FirebaseApp.initializeApp(PerfilPoliticoAntigo.this);
         mAuth = FirebaseAuth.getInstance();
     }
 

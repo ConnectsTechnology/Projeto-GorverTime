@@ -1,4 +1,4 @@
-package lass.govertime.Presidentes;
+package lass.govertime;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -10,7 +10,6 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import com.github.florent37.diagonallayout.DiagonalLayout;
-import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -19,9 +18,6 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.squareup.picasso.Picasso;
 import lass.govertime.Adapter.ViewPagerAdapter;
-import lass.govertime.Login;
-import lass.govertime.MainActivity;
-import lass.govertime.R;
 
 public class PerfilPolitico extends AppCompatActivity {
 
@@ -40,10 +36,9 @@ public class PerfilPolitico extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_perfil_politico);
+        DatabaseUtil.getDatabase();
         final ActionBar act = getSupportActionBar();
         act.setDisplayHomeAsUpEnabled(true);
-        DatabaseUtil.getDatabase();
-        FirebaseApp.initializeApp(PerfilPolitico.this);
         mAuth = FirebaseAuth.getInstance();
         mDatabase = FirebaseDatabase.getInstance().getReference().child("Eleicao");
         mDatabaseSeguidores = FirebaseDatabase.getInstance().getReference().child("Favorito");

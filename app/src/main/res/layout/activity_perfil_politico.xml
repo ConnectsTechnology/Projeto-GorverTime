@@ -7,7 +7,7 @@
     android:background="@drawable/fundo"
     android:orientation="vertical"
     android:id="@+id/cont"
-    tools:context=".Presidentes.PerfilPolitico">
+    tools:context=".PerfilPolitico">
     <android.support.design.widget.AppBarLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -34,8 +34,9 @@
 
                     <ImageView
                         android:id="@+id/imgCandidato"
-                        android:scaleType="centerCrop"
+                        android:background="@color/tabIndicadorColor"
                         android:src="@drawable/default_avatar"
+                        android:adjustViewBounds="true"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content" />
 

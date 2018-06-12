@@ -1,5 +1,7 @@
 package lass.govertime;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -24,33 +26,26 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.firebase.ui.database.FirebaseRecyclerAdapter;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.squareup.picasso.Picasso;
 
+import java.util.ArrayList;
+import java.util.Calendar;
+
 import de.hdodenhof.circleimageview.CircleImageView;
-import lass.govertime.Presidentes.DatabaseUtil;
-import lass.govertime.Presidentes.FragmentComentario;
-import lass.govertime.Presidentes.ListaPresidente;
-import lass.govertime.Presidentes.PerfilPolitico;
-import lass.govertime.Presidentes.Pessoa;
-import lass.govertime.Presidentes.Ranking;
+import lass.govertime.Adapter.SearchAdapter;
+import lass.govertime.Adapter.SearchAdapterNoticias;
+import lass.govertime.Adapter.SearchAdapterPresidentes;
 
 
 public class MainActivity extends AppCompatActivity
@@ -59,28 +54,53 @@ public class MainActivity extends AppCompatActivity
     private FirebaseAuth mAuth;
     private FirebaseAuth.AuthStateListener mAuthListener;
     private FirebaseUser user;
-    private String nome,email;
+    private String nome,email, img;
     private FragmentManager fragmentManager;
 
     private RecyclerView listaRancking;
+    private RecyclerView listaNoticias;
+    private RecyclerView listaPresidentes;
+    private RecyclerView listaFavoritos;
     private DatabaseReference mDatabase;
     private DatabaseReference mDatabaseUser;
     private DatabaseReference mRancking;
+    private DatabaseReference mPresidentes;
+    private DatabaseReference mDatabaseNoticias;
     private DatabaseReference mSeguir;
     private boolean clickVotar = false;
     private boolean clickSeguir = false;
     private int base;
+    ArrayList<String> nomeList;
+    ArrayList<String> imgList;
+    ArrayList<String> idList;
+    SearchAdapter searchAdapter;
+    MenuItem searchmenu;
+
+    ArrayList<String> nomeListPres;
+    ArrayList<String> imgListPres;
+    ArrayList<String> idListPres;
+    ArrayList<String> votoListPres;
+    SearchAdapterPresidentes searchAdapterPresidentes;
+
+    ArrayList<String> textoList;
+    ArrayList<String> imgNList;
+    ArrayList<String> img1NList;
+    ArrayList<String> idNList;
+    ArrayList<String> linkList;
+    ArrayList<String> dataList;
+    SearchAdapterNoticias searchAdapterNoticias;
+
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        DatabaseUtil.getDatabase();
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        setLayout(1);
-        base = 1;
-
+        setLayout(5);
+        base = 5;
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
@@ -91,6 +111,7 @@ public class MainActivity extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
 
         mAuth = FirebaseAuth.getInstance();
+
         mAuthListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
@@ -98,12 +119,12 @@ public class MainActivity extends AppCompatActivity
                 if (user != null) {
                     Logado();
                 } else {
-                Logar();
+                    Logar();
                 }
             }
         };
-
     }
+
 
     private void setLayout(int op){
         Object classe = null;
@@ -120,6 +141,12 @@ public class MainActivity extends AppCompatActivity
         }else if(op == 3){
             classe = new PerfilUsuario();
             id = "Meu Perfil";
+        }else if(op == 4){
+            classe = new Favoritos();
+            id = "Favoritos";
+        }else if(op == 5){
+            classe = new NoticiasEleicao();
+            id = "Noticias";
         }
         base = op;
         FrameLayout it = (FrameLayout)findViewById(R.id.container);
@@ -137,6 +164,7 @@ public class MainActivity extends AppCompatActivity
     protected void onStart() {
         super.onStart();
         mAuth.addAuthStateListener(mAuthListener);
+
     }
 
     @Override
@@ -165,6 +193,7 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
 
+                img = dataSnapshot.child("imagem").getValue().toString();
                 nome = dataSnapshot.child("nome").getValue().toString();
                 email = dataSnapshot.child("email").getValue().toString();
                 setInfo();
@@ -196,11 +225,13 @@ public class MainActivity extends AppCompatActivity
         View header = navi.getHeaderView(0);
         Menu menu = navi.getMenu();
 
+        CircleImageView imga = (CircleImageView)header.findViewById(R.id.imageView);
         TextView nome2 = (TextView) header.findViewById(R.id.menuNome);
         TextView email2 = (TextView) header.findViewById(R.id.menuEmail);
-        System.out.println(nome.toString());
         nome2.setText(nome.toString());
         email2.setText(email.toString());
+        Picasso.with(header.getContext()).load(img).into(imga);
+
 
         MenuItem logout = menu.findItem(R.id.nav_logout);
         MenuItem login = menu.findItem(R.id.nav_login);
@@ -220,8 +251,9 @@ public class MainActivity extends AppCompatActivity
 
         SearchView mSearchView = (SearchView) menu.findItem(R.id.search)
                 .getActionView();
+        searchmenu = menu.findItem(R.id.search);
         //Define um texto de ajuda:
-        mSearchView.setQueryHint("teste");
+        mSearchView.setQueryHint("Pesquisar...");
         // exemplos de utilização:
         mSearchView.setOnQueryTextListener(this);
 
@@ -246,17 +278,22 @@ public class MainActivity extends AppCompatActivity
 
         if(id == R.id.nav_login){
             startActivity(new Intent(this, Login.class));
+            finish();
         }else if (id == R.id.nav_feed) {
-
+            setLayout(5);
+            pesquisa(1);
         }else if (id == R.id.nav_ranking) {
             setLayout(1);
-            //pesquisa(2);
+            pesquisa(1);
         }else if (id == R.id.nav_all) {
             setLayout(2);
+            pesquisa(1);
         }else if (id == R.id.nav_perfil) {
             setLayout(3);
+            pesquisa(2);
         } else if (id == R.id.nav_favoritos) {
-
+            setLayout(4);
+            pesquisa(1);
         } else if (id == R.id.nav_termos) {
             cliqueTermos();
         } else if (id == R.id.nav_logout) {
@@ -274,24 +311,63 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
-    /*private void pesquisa(int op){
-        NavigationView navi = (NavigationView)findViewById(R.id.nav_view);
-        navi.setNavigationItemSelectedListener(this);
-        Menu menu = navi.getMenu();
-        MenuItem search = menu.findItem(R.id.search);
-        SearchView searchMenu = (SearchView) menu.findItem(R.id.search).getActionView();
-        if(op == 1) {
-            search.setVisible(true);
-        }else{
-            //search.setVisible(false);
-            searchMenu.setVisibility(View.INVISIBLE);
+    private void pesquisa(int op) {
+        if (op == 1) {
+            searchmenu.setVisible(true);
+        } else {
+            searchmenu.setVisible(false);
         }
-    }*/
+    }
 
     private void cliqueTermos(){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Termos de Uso");
-        builder.setMessage("\n\nUSABILIDADE\n\n");
+        builder.setMessage("Salvador, 02 de Junho de 2018\n" +
+                "1. ACEITAÇÃO\n" +
+                "Este é um contrato firmado entre você, de agora em diante denominado como usuário, e a Connects. Este “Termo de Uso de Aplicativo” rege o uso de todos os aplicativos\n" +
+                "disponibilizados gratuitamente pela Connects sejam para dispositivos móveis (Android, IOS, Windows Mobile),\n" +
+                "servidores, computadores pessoais (desktops) ou serviços web. Se você não concordar com estes termos não\n" +
+                "use este aplicativo.\n" +
+                "Você reconhece que analisou e aceitou as condições de uso. Leia-as atentamente pois o uso deste aplicativo\n" +
+                "significa que você aceitou todos os termos e concorda em cumpri-los. Se você, usuário, for menor de idade ou\n" +
+                "declarado incapaz em quaisquer aspectos, precisará da permissão de seus pais ou responsáveis que também\n" +
+                "deverão concordar com estes mesmos termos e condições.\n" +
+                "2. LICENÇA LIMITADA\n" +
+                "Você recebeu uma licença limitada, não transferível, não exclusiva, livre de royalties e revogável para baixar,\n" +
+                "instalar, executar e utilizar este aplicativo em seu dispositivo. Você reconhece e concorda que a Connects\n" +
+                "concede ao usuário uma licença exclusiva para uso e desta forma não lhe transfere os direitos sobre o produto.\n" +
+                "O aplicativo deverá ser utilizado por você, usuário. A venda, transferência, modificação, engenharia reversa ou\n" +
+                "distribuição bem como a cópia de textos, imagens ou quaisquer partes nele contido é expressamente proibida.\n" +
+                "3. ALTERAÇÕES, MODIFICAÇÕES E RESCISÃO\n" +
+                "A Connects reserva-se no direito de, a qualquer tempo, modificar estes termos seja incluindo, removendo ou\n" +
+                "alterando quaisquer de suas cláusulas. Tais modificações terão efeito imediato. Após publicadas tais alterações,\n" +
+                "ao continuar com o uso do aplicativo você terá aceitado e concordado em cumprir os termos modificados.\n" +
+                "A Connects pode, de tempos em tempos, modificar ou descontinuar (temporária ou permanentemente) a\n" +
+                "distribuição ou a atualização deste aplicativo.\n" +
+                "A Connects não é obrigada a fornecer nenhum serviço de suporte para este aplicativo.\n" +
+                "O usuário não poderá responsabilizar a Connects nem seus diretores, executivos, funcionários, afiliados, agentes,\n" +
+                "contratados ou licenciadores por quaisquer modificações, suspensões ou descontinuidade do aplicativo.\n" +
+                "CONSENTIMENTO PARA COLETA E USO DE DADOS\n" +
+                "Você concorda que a Connects pode coletar e usar dados técnicos de seu dispositivo tais como especificações,\n" +
+                "configurações, versões de sistema operacional, tipo de conexão à internet e afins.\n" +
+                "ISENÇÃO DE GARANTIAS E LIMITAÇÕES DE RESPONSABILIDADE\n" +
+                "Este aplicativo estará em contínuo desenvolvimento e pode conter erros e, por isso, o uso é fornecido \"no\n" +
+                "estado em que se encontra\" e sob risco do usuário final. Na extensão máxima permitida pela legislação aplicável\n" +
+                "a Connects e seus fornecedores isentam-se de quaisquer garantias e condições expressas ou implícitas incluindo,\n" +
+                "sem limitação, garantias de comercialização, adequação a um propósito específico, titularidade e não violação no\n" +
+                "que diz respeito ao aplicativo e qualquer um de seus componentes ou ainda à prestação ou não de serviços de\n" +
+                "suporte. A Connects não garante que a operação deste aplicativo seja contínua e sem defeitos.\n" +
+                "Exceto pelo estabelecido neste documento não há outras garantias, condições ou promessas aos aplicativos,\n" +
+                "expressas ou implícitas, e todas essas garantias, condições e promessas podem ser excluídas de acordo com o\n" +
+                "que é permitido por lei sem prejuízo à Connects e seus colaboradores.\n" +
+                "I. A Connects não garante, declara ou assegura que o uso deste aplicativo será ininterrupto ou livre de erros\n" +
+                "e você concorda que a Connects poderá remover por períodos indefinidos ou cancelar este aplicativo a qualquer\n" +
+                "momento sem que você seja avisado.\n" +
+                "II. A Connects não garante, declara nem assegura que este aplicativo esteja livre de perda, interrupção,\n" +
+                "ataque, vírus, interferência, pirataria ou outra invasão de segurança e isenta-se de qualquer responsabilidade em\n" +
+                "relação à essas questões. Você é responsável pelo backup do seu próprio dispositivo.\n" +
+                "III. Em hipótese alguma a Connects, bem como seus diretores, executivos, funcionários, afiliadas, agentes,\n" +
+                "contratados ou licenciadores responsabilizar-se-ão por perdas ou danos causados pelo uso do aplicativo.");
 
         builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface arg0, int arg1) {
@@ -314,265 +390,155 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public boolean onQueryTextChange(String newText) {
-        if(base == 1) {
-            carregar(newText);
+        if(base == 5) {
+            carregarNoticias(newText.toString());
+        }else if (base == 1){
+            carregarRanking(newText.toString());
+        }else if (base == 2){
+            carregarLista(newText.toString());
+        }else if(base == 4){
+            pesquisarUsuario(newText.toString());
         }
         return true;
     }
 
-    public void carregar(String txt2){
-        mAuth = FirebaseAuth.getInstance();
-        DatabaseUtil.getDatabase();
-        FirebaseApp.initializeApp(this);
-        Query query;
+    private void carregarNoticias(final String string) {
+        mDatabaseNoticias = FirebaseDatabase.getInstance().getReference().child("UltimasNoticias");
 
-        listaRancking = (RecyclerView)findViewById(R.id.listaRancking);
-        listaRancking.setHasFixedSize(true);
+        textoList = new ArrayList<>();
+        imgNList = new ArrayList<>();
+        img1NList = new ArrayList<>();
+        idNList = new ArrayList<>();
+        linkList = new ArrayList<>();
+        dataList = new ArrayList<>();
+
+        listaNoticias = (RecyclerView)findViewById(R.id.listaNoticias);
+        listaNoticias.setHasFixedSize(true);
         LinearLayoutManager ln = new LinearLayoutManager(getApplicationContext());
-        ln.setReverseLayout(true);
-        ln.setStackFromEnd(true);
-        listaRancking.setLayoutManager(ln);
-
-        mDatabase = FirebaseDatabase.getInstance().getReference().child("Eleicao");
-        mDatabaseUser = FirebaseDatabase.getInstance().getReference().child("Voto");
-        mRancking = FirebaseDatabase.getInstance().getReference().child("Rancking");
-        mSeguir = FirebaseDatabase.getInstance().getReference().child("Favorito");
-        mRancking.keepSynced(true);
-        mSeguir.keepSynced(true);
-        mDatabaseUser.keepSynced(true);
-
-        if (txt2.toString().equals("")) {
-            query = mDatabase.orderByChild("voto");
-
-        }else {
-            query = mDatabase.orderByChild("nome").startAt(txt2).endAt(txt2+"\uf8ff");
-
-        }
+        listaNoticias.setLayoutManager(ln);
 
 
-
-        final FirebaseRecyclerAdapter<Pessoa, MainActivity.PresidenteViewHolder> firebaseRecyclerAdapter = new FirebaseRecyclerAdapter<Pessoa, MainActivity.PresidenteViewHolder>
-                (
-                        Pessoa.class,
-                        R.layout.item_rancking,
-                        MainActivity.PresidenteViewHolder.class,
-                        query
-                ) {
+        mDatabaseNoticias.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void populateViewHolder(final MainActivity.PresidenteViewHolder viewHolder, Pessoa model, int position) {
-                final String chave_presidente = getRef(position).getKey();
-                viewHolder.setNome(model.getNome());
-                if(mAuth.getCurrentUser() == null) {
-                    // viewHolder.setVoto(model.getVoto());
+            public void onDataChange(DataSnapshot dataSnapshot) {
+
+                textoList.clear();
+                imgNList.clear();
+                img1NList.clear();
+                idNList.clear();
+                linkList.clear();
+                dataList.clear();
+                listaNoticias.removeAllViews();
+
+                for (DataSnapshot snapshot:dataSnapshot.getChildren()){
+                    String nome = snapshot.child("texto").getValue(String.class);
+                    String img = snapshot.child("imagem").getValue(String.class);
+                    String img1 = snapshot.child("imagem1").getValue(String.class);
+                    String link = snapshot.child("link").getValue(String.class);
+                    String data = snapshot.child("data").getValue(String.class);
+                    String id = snapshot.getKey();
+
+                    if (nome.toLowerCase().contains(string.toLowerCase())){
+
+                        textoList.add(nome);
+                        imgNList.add(img);
+                        img1NList.add(img1);
+                        idNList.add(id);
+                        linkList.add(link);
+                        dataList.add(data);
+                    }
+
                 }
-                viewHolder.setImagem(getApplicationContext(), model.getImagem());
-                viewHolder.setBtn(chave_presidente);
-                viewHolder.setBtnSeguir(chave_presidente);
 
-                viewHolder.mView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Intent telaPres = new Intent(getApplicationContext(), PerfilPolitico.class);
-                        telaPres.putExtra("anuncio_id", chave_presidente);
-                        startActivity(telaPres);
-                        Intent tt = new Intent(getApplicationContext(), FragmentComentario.class);
-                        tt.putExtra("id", chave_presidente);
-                        Bundle bundle = new Bundle();
-                        bundle.putString("id", chave_presidente);
-                        finish();
-                    }
-                });
-
-
-
-
-                viewHolder.btnVotar.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-
-                        if (mAuth.getCurrentUser() != null){
-                            clickVotar = true;
-                            mRancking.addValueEventListener(new ValueEventListener() {
-                                @Override
-                                public void onDataChange(final DataSnapshot dataSnapshot) {
-                                    final String user = mAuth.getCurrentUser().getUid();
-
-                                    mDatabaseUser.child(user).addValueEventListener(new ValueEventListener() {
-                                        @Override
-                                        public void onDataChange(DataSnapshot data) {
-                                            final String teste = (String) data.child("votou").getValue();
-
-
-                                            if (clickVotar) {
-                                                if (dataSnapshot.child(chave_presidente).hasChild(mAuth.getCurrentUser().getUid())) {
-
-                                                    if (teste != null) {
-                                                        mRancking.child(chave_presidente).child(mAuth.getCurrentUser().getUid()).removeValue();
-                                                        mDatabaseUser.child(mAuth.getCurrentUser().getUid()).removeValue();
-                                                    }
-                                                    clickVotar = false;
-                                                } else {
-
-                                                    if (teste == null) {
-                                                        mRancking.child(chave_presidente).child(mAuth.getCurrentUser().getUid()).child("voto").setValue(mAuth.getCurrentUser().getUid());
-                                                        mDatabaseUser.child(mAuth.getCurrentUser().getUid()).child("votou").setValue(mAuth.getCurrentUser().getUid());
-                                                    }else {
-                                                        Toast.makeText(getApplicationContext(), "Você Já votou!!!", Toast.LENGTH_SHORT).show();
-                                                    }
-                                                    clickVotar = false;
-                                                }
-
-                                            }
-
-                                        }
-
-
-                                        @Override
-                                        public void onCancelled(DatabaseError databaseError) {
-
-                                        }
-                                    });
-
-                                }
-
-                                @Override
-                                public void onCancelled(DatabaseError databaseError) {
-
-                                }
-                            });
-                        }else {
-                            Toast.makeText(getApplicationContext(), "Vc precisa fazer login para votar...", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-
-
-                });
-
-
-
-
-
-                viewHolder.btnSeguir.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        if (mAuth.getCurrentUser() != null){
-                            clickSeguir = true;
-                            mSeguir.addValueEventListener(new ValueEventListener() {
-                                @Override
-                                public void onDataChange(DataSnapshot dataSnapshot) {
-                                    if (clickSeguir) {
-                                        if (dataSnapshot.child(chave_presidente).hasChild(mAuth.getCurrentUser().getUid())) {
-
-                                            mSeguir.child(chave_presidente).child(mAuth.getCurrentUser().getUid()).removeValue();
-                                            clickSeguir = false;
-
-                                        } else {
-
-                                            mSeguir.child(chave_presidente).child(mAuth.getCurrentUser().getUid()).child("seguiu").setValue("seguiu");
-                                            clickSeguir = false;
-
-                                        }
-                                    }
-                                }
-
-                                @Override
-                                public void onCancelled(DatabaseError databaseError) {
-
-                                }
-                            });
-                        }else {
-                            Toast.makeText(getApplicationContext(), "Vc precisa fazer login para seguir o politico...", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
+                searchAdapterNoticias = new SearchAdapterNoticias(getApplicationContext(), textoList, imgNList,img1NList, idNList, linkList, dataList);
+                listaNoticias.setAdapter(searchAdapterNoticias);
             }
-        };
 
-        listaRancking.setAdapter(firebaseRecyclerAdapter);
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
     }
 
-    public static class PresidenteViewHolder extends RecyclerView.ViewHolder {
 
-        View mView;
-        ImageButton btnVotar;
-        ImageButton btnVotarRed;
-        ImageButton btnSeguir;
-        DatabaseReference mRancking;
-        DatabaseReference mDatabaseUser;
-        DatabaseReference mSeguir;
-        DatabaseReference mEleicao;
-        FirebaseAuth mAuth;
-        TextView voto;
-        TextView txt;
-        int contador;
+    private void pesquisarUsuario(final String txt){
+        DatabaseReference myRef = FirebaseDatabase.getInstance().getReference().child("Favorito");
+        myRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                ArrayList<String> idPresidentes = new ArrayList<>();
 
-        public PresidenteViewHolder(final View itemView) {
-            super(itemView);
-            mView = itemView;
-            btnVotar = (ImageButton)mView.findViewById(R.id.btnVotar);
-            btnVotarRed = (ImageButton)mView.findViewById(R.id.btnVotarRed);
-            btnSeguir = (ImageButton)mView.findViewById(R.id.btnSeguir);
-            voto = (TextView)mView.findViewById(R.id.votos);
-            txt = (TextView)mView.findViewById(R.id.votosText);
+                for (DataSnapshot snapshot:dataSnapshot.getChildren()){
 
-            mRancking = FirebaseDatabase.getInstance().getReference().child("Rancking");
-            mDatabaseUser = FirebaseDatabase.getInstance().getReference().child("Voto");
-            mSeguir = FirebaseDatabase.getInstance().getReference().child("Favorito");
-            mEleicao = FirebaseDatabase.getInstance().getReference().child("Eleicao");
-            mAuth = FirebaseAuth.getInstance();
-            mRancking.keepSynced(true);
+                    if(snapshot.hasChild(user.getUid())) {
+                        idPresidentes.add(snapshot.getKey());
+                    }
 
-        }
+                }
+                if(!idPresidentes.isEmpty()) {
+                    carregarFavoritos(idPresidentes,txt);
+                }
+            }
 
-        public void setBtn(final String chave_presidente){
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
 
-            mRancking.addValueEventListener(new ValueEventListener() {
+            }
+        });
+    }
+
+
+    private void carregarFavoritos(final ArrayList idPresidentes, final String txt) {
+        listaFavoritos = (RecyclerView) findViewById(R.id.listaFavoritos);
+        listaFavoritos.setHasFixedSize(true);
+        LinearLayoutManager ln = new LinearLayoutManager(getApplicationContext());
+        listaFavoritos.setLayoutManager(ln);
+        mAuth = FirebaseAuth.getInstance();
+        mDatabase = FirebaseDatabase.getInstance().getReference().child("Eleicao");
+        nomeListPres = new ArrayList<>();
+        imgListPres = new ArrayList<>();
+        idListPres = new ArrayList<>();
+        votoListPres = new ArrayList<>();
+
+            mDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
-                    if (mAuth.getCurrentUser() != null) {
 
-                        if (dataSnapshot.child(chave_presidente).hasChild(mAuth.getCurrentUser().getUid())) {
+                    nomeListPres.clear();
+                    imgListPres.clear();
+                    idListPres.clear();
+                    votoListPres.clear();
+                    listaFavoritos.removeAllViews();
 
-                            contador = (int) dataSnapshot.child(chave_presidente).getChildrenCount();
-                            btnVotar.setImageResource(R.drawable.ic_votar_red);
+                    for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                        String nome = snapshot.child("nome").getValue(String.class);
+                        String img = snapshot.child("imagem").getValue(String.class);
+                        String voto = snapshot.child("voto").getValue(String.class);
+                        String id = snapshot.getKey();
+                        for (int i = 0; i < idPresidentes.size(); i++) {
+                            if(txt.toString().equals("")){
+                                if (idPresidentes.get(i).toString().contains(id)) {
+                                    nomeListPres.add(nome);
+                                    imgListPres.add(img);
+                                    idListPres.add(id);
+                                    votoListPres.add(voto);
+                                    break;
+                                }
 
-                            if (contador < 2) {
-                                voto.setText(Integer.toString(contador));
-                                txt.setText("voto");
-                            } else {
-                                voto.setText(Integer.toString(contador));
-                                txt.setText("votos");
-                            }
-                        }else {
-
-                            contador = (int) dataSnapshot.child(chave_presidente).getChildrenCount();
-                            btnVotar.setImageResource(R.drawable.ic_votar);
-
-                            if (contador < 2) {
-                                voto.setText(Integer.toString(contador));
-                                txt.setText("voto");
-                            } else {
-                                voto.setText(Integer.toString(contador));
-                                txt.setText("votos");
+                            }else{
+                                if (idPresidentes.get(i).toString().contains(id) && nome.toString().toLowerCase().contains(txt.toString().toLowerCase())){
+                                    nomeListPres.add(nome);
+                                    imgListPres.add(img);
+                                    idListPres.add(id);
+                                    votoListPres.add(voto);
+                                    break;
+                                }
                             }
                         }
 
-                    }else {
-                        contador = (int) dataSnapshot.child(chave_presidente).getChildrenCount();
-                        if (contador < 2) {
-                            voto.setText(Integer.toString(contador));
-                            txt.setText("voto");
-                        } else {
-                            voto.setText(Integer.toString(contador));
-                            txt.setText("votos");
-                        }
                     }
-                    mEleicao.child(chave_presidente).child("voto").setValue(voto.getText().toString()).addOnCompleteListener(new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-
-                        }
-                    });
                 }
 
                 @Override
@@ -580,50 +546,146 @@ public class MainActivity extends AppCompatActivity
 
                 }
             });
+            searchAdapterPresidentes = new SearchAdapterPresidentes(getApplicationContext(), nomeListPres, imgListPres, idListPres, votoListPres);
+            listaFavoritos.setAdapter(searchAdapterPresidentes);
+
+    }
+
+    private void carregarRanking(final String string) {
+       DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference().child("Eleicao");
+
+        nomeListPres = new ArrayList<>();
+        imgListPres = new ArrayList<>();
+        idListPres = new ArrayList<>();
+        votoListPres = new ArrayList<>();
+
+        listaRancking = (RecyclerView)findViewById(R.id.listaRancking);
+        listaRancking.setHasFixedSize(true);
+        LinearLayoutManager ln = new LinearLayoutManager(getApplicationContext());
+        listaRancking.setLayoutManager(ln);
 
 
+        mDatabase.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
 
-        }
 
-        public void setBtnSeguir(final String chave_presidente){
-            if (mAuth.getCurrentUser() != null) {
-                mSeguir.addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
+                nomeListPres.clear();
+                imgListPres.clear();
+                idListPres.clear();
+                votoListPres.clear();
+                listaRancking.removeAllViews();
 
-                        if (dataSnapshot.child(chave_presidente).hasChild(mAuth.getCurrentUser().getUid())) {
+                int cont = 0;
+                for (DataSnapshot snapshot:dataSnapshot.getChildren()){
+                    String politico = snapshot.child("nome").getValue(String.class);
+                    String img = snapshot.child("imagem").getValue(String.class);
+                    String id = snapshot.getKey();
+                    String voto = snapshot.child("voto").getValue(String.class);
 
-                            btnSeguir.setImageResource(R.drawable.ic_favorito_amarelo);
+                    if(!string.equals("")) {
+                        if (politico != null) {
+                            if (politico.toLowerCase().contains(string.toLowerCase())) {
 
-                        } else {
-                            btnSeguir.setImageResource(R.drawable.ic_favorito);
+                                nomeListPres.add(politico);
+                                imgListPres.add(img);
+                                idListPres.add(id);
+                                votoListPres.add(voto);
+                                cont++;
 
+                            }
+                        }
+                    }else{
+                        nomeListPres.add(politico);
+                        imgListPres.add(img);
+                        idListPres.add(id);
+                        votoListPres.add(voto);
+                        cont++;
+                    }
+                }
+                String aux;
+                int voto,voto2;
+                for(int i = 0;i<cont;i++){
+                        for(int j = i+1 ;j<cont;j++){
+                            voto = Integer.parseInt(votoListPres.get(i));
+                            voto2 = Integer.parseInt(votoListPres.get(j));
+                            if(voto < voto2){
+                                aux = nomeListPres.get(i);
+                                nomeListPres.set(i,nomeListPres.get(j));
+                                nomeListPres.set(j,aux);
+
+                                aux = imgListPres.get(i);
+                                imgListPres.set(i,imgListPres.get(j));
+                                imgListPres.set(j,aux);
+
+                                aux = idListPres.get(i);
+                                idListPres.set(i,idListPres.get(j));
+                                idListPres.set(j,aux);
+
+                                aux = votoListPres.get(i);
+                                votoListPres.set(i,votoListPres.get(j));
+                                votoListPres.set(j,aux);
+
+
+                            }
                         }
                     }
 
-                    @Override
-                    public void onCancelled(DatabaseError databaseError) {
-
-                    }
-                });
-
             }
 
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
 
-        }
-        public void setImagem(Context context, String imagem) {
+            }
+        });
 
-            CircleImageView imagem_anuncio = (CircleImageView) mView.findViewById(R.id.imgRancking);
-            Picasso.with(context).load(imagem).placeholder(R.drawable.default_avatar).into(imagem_anuncio);
+        searchAdapterPresidentes = new SearchAdapterPresidentes(getApplicationContext(), nomeListPres, imgListPres, idListPres, votoListPres);
+        listaRancking.setAdapter(searchAdapterPresidentes);
+    }
 
-        }
+    private void carregarLista(final String txt3) {
+        mPresidentes = FirebaseDatabase.getInstance().getReference().child("Presidentes");
+        nomeList = new ArrayList<>();
+        imgList = new ArrayList<>();
+        idList = new ArrayList<>();
 
-        public void setNome(String nome) {
+        listaPresidentes = (RecyclerView)findViewById(R.id.listaPresidentes);
+        listaPresidentes.setHasFixedSize(true);
+        listaPresidentes.setLayoutManager(new LinearLayoutManager(MainActivity.this));
 
-            TextView textView = (TextView) mView.findViewById(R.id.candidato);
-            textView.setText(nome);
+        mPresidentes.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
 
-        }
+                nomeList.clear();
+                imgList.clear();
+                idList.clear();
+                listaPresidentes.removeAllViews();
+
+                for (DataSnapshot snapshot:dataSnapshot.getChildren()){
+                    String nome = snapshot.child("nome").getValue(String.class);
+                    String img = snapshot.child("imagem").getValue(String.class);
+                    String id = snapshot.getKey();
+
+                    if (nome.toLowerCase().contains(txt3.toLowerCase())){
+
+                        nomeList.add(nome);
+                        imgList.add(img);
+                        idList.add(id);
+                    }
+
+                }
+
+                searchAdapter = new SearchAdapter(getApplicationContext(), nomeList, imgList, idList);
+                listaPresidentes.setAdapter(searchAdapter);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
 
     }
+
 }

@@ -1,4 +1,4 @@
-package lass.govertime.Presidentes;
+package lass.govertime;
 
 import android.content.Context;
 import android.content.Intent;
@@ -18,7 +18,6 @@ import android.widget.Toast;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -29,8 +28,6 @@ import com.google.firebase.database.ValueEventListener;
 import com.squareup.picasso.Picasso;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import lass.govertime.MainActivity;
-import lass.govertime.R;
 
 /**
  * Created by L.A.S.S on 23/05/2018.
@@ -51,10 +48,8 @@ public class Ranking extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.content_inicio_presidentes, container, false);
-        mAuth = FirebaseAuth.getInstance();
         DatabaseUtil.getDatabase();
-        FirebaseApp.initializeApp(getActivity());
-
+        mAuth = FirebaseAuth.getInstance();
         listaRancking = (RecyclerView) view.findViewById(R.id.listaRancking);
         listaRancking.setHasFixedSize(true);
         LinearLayoutManager ln = new LinearLayoutManager(getActivity());
@@ -98,11 +93,13 @@ public class Ranking extends Fragment {
                 viewHolder.setBtn(chave_presidente);
                 viewHolder.setBtnSeguir(chave_presidente);
 
+                final String nomePolitico = model.getNome();
                 viewHolder.mView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         Intent telaPres = new Intent(getActivity(), PerfilPolitico.class);
                         telaPres.putExtra("anuncio_id", chave_presidente);
+                        telaPres.putExtra("nomePolitico", nomePolitico);
                         startActivity(telaPres);
                         Intent tt = new Intent(getActivity(), FragmentComentario.class);
                         tt.putExtra("id", chave_presidente);

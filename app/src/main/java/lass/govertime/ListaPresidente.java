@@ -1,4 +1,4 @@
-package lass.govertime.Presidentes;
+package lass.govertime;
 
 import android.content.Context;
 import android.content.Intent;
@@ -13,13 +13,11 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
-import com.google.firebase.FirebaseApp;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.squareup.picasso.Picasso;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-import lass.govertime.R;
 
 public class ListaPresidente extends Fragment {
     private RecyclerView listaPresidentes;
@@ -28,10 +26,7 @@ public class ListaPresidente extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.activity_lista_presidente, container, false);
-        DatabaseUtil.getDatabase();
         mDatabase = FirebaseDatabase.getInstance().getReference().child("Presidentes");
-        FirebaseApp.initializeApp(getActivity());
-
         listaPresidentes = (RecyclerView) view.findViewById(R.id.listaPresidentes);
         listaPresidentes.setHasFixedSize(true);
         listaPresidentes.setLayoutManager(new LinearLayoutManager(getActivity()));

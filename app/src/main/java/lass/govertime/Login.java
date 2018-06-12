@@ -106,8 +106,6 @@ public class Login extends AppCompatActivity {
                 // Google Sign In was successful, authenticate with Firebase
                 GoogleSignInAccount account = result.getSignInAccount();
                 firebaseAuthWithGoogle(account);
-            } else {
-
             }
         }
     }
@@ -290,41 +288,40 @@ public class Login extends AppCompatActivity {
     }
 
     public void home(){
+        startActivity(new Intent(this, MainActivity.class));
         this.finish();
     }
 
     private void checkUserExiste() {
         if (mAuth.getCurrentUser() != null){
-        final String user_id = mAuth.getCurrentUser().getUid();
+            final String user_id = mAuth.getCurrentUser().getUid();
 
-        mDatabaseUser.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
+            mDatabaseUser.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    if (dataSnapshot.hasChild(user_id)) {
 
-                Intent inicio = new Intent(Login.this, MainActivity.class);
-                inicio.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(inicio);
-                /*if (dataSnapshot.hasChild(user_id)) {
+                        Intent inicio = new Intent(Login.this, MainActivity.class);
+                        inicio.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(inicio);
 
-                    Intent inicio = new Intent(Login.this, MainActivity.class);
-                    inicio.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    startActivity(inicio);
+                    } else {
 
-                } else {
+                        Intent editar = new Intent(Login.this, EditarPerfil.class);
+                        editar.putExtra("op", "cadastro");
+                        startActivity(editar);
 
-                    Intent editar = new Intent(Login.this, EditarPerfil.class);
-                    editar.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    startActivity(editar);
 
-                }*/
-            }
+                    }
+                    finish();
+                }
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
 
-            }
-        });
-    }
+                }
+            });
+        }
 
     }
     public void clickCad(View v){

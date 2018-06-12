@@ -1,4 +1,4 @@
-package lass.govertime.Presidentes;
+package lass.govertime;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -36,6 +36,7 @@ public class FragmentSobre extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
 
         view = inflater.inflate(R.layout.sobre, container, false);
+        DatabaseUtil.getDatabase();
         textView = (TextView)view.findViewById(R.id.nomep);
         textView1 = (TextView)view.findViewById(R.id.partido);
         cargo = (TextView)view.findViewById(R.id.cargo);

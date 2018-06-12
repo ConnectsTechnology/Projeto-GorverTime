@@ -1,4 +1,4 @@
-package lass.govertime.Presidentes;
+package lass.govertime;
 
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -6,7 +6,7 @@ import com.google.firebase.database.FirebaseDatabase;
  * Created by Nailson on 11/03/2018.
  */
 
-public class DatabaseUtil {
+public class DatabaseUtil extends android.app.Application{
     private static FirebaseDatabase mDatabase;
 
     public static FirebaseDatabase getDatabase() {

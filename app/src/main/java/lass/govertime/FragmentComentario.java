@@ -1,8 +1,7 @@
-package lass.govertime.Presidentes;
+package lass.govertime;
 
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -38,9 +37,6 @@ import java.util.Date;
 import de.hdodenhof.circleimageview.CircleImageView;
 import lass.govertime.Adapter.ComentObject;
 import lass.govertime.Adapter.ComentObjectRes;
-import lass.govertime.Login;
-import lass.govertime.MainActivity;
-import lass.govertime.R;
 
 
 /**
@@ -69,6 +65,7 @@ public class FragmentComentario extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.comentarios, container, false);
+        DatabaseUtil.getDatabase();
 
         mAuth = FirebaseAuth.getInstance();
         if (mAuth.getCurrentUser() != null) {
@@ -79,8 +76,6 @@ public class FragmentComentario extends Fragment {
         linearLayout = (LinearLayout)view.findViewById(R.id.lei);
         edtComent = (EditText) view.findViewById(R.id.edtComent);
         btn_sendComent = (ImageButton)view.findViewById(R.id.btn_sendComent);
-        DatabaseUtil.getDatabase();
-        FirebaseApp.initializeApp(getContext());
         mDatabaseRes = FirebaseDatabase.getInstance().getReference().child("ComentariosRes");
         mDatabaseRes.keepSynced(true);
         mDatabase = FirebaseDatabase.getInstance().getReference().child("Comentarios");
